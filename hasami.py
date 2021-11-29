@@ -114,79 +114,136 @@ class HasamiShogiGame:
     elif self.__game_state != "UNFINISHED":
       return False
     else:
+      if start_x == dest_x:
+        strt, end = start_y, dest_y
+        if start_y > dest_y:
+          strt, end = dest_y, start_y
+        for count in range(strt+1,end):
+          if self.__board[dest_x][count] != None:
+            return False
+      else: 
+        strt, end = start_x, dest_x
+        if start_x > dest_x:
+          strt, end = dest_x, start_x
+        for count in range(strt+1,end):
+          if self.__board[count][dest_y] != None:
+            return False
+
       self.__board[start_x][start_y] = None
       self.__board[dest_x][dest_y] = self.__pieces.index(curr_active)
       
-      for idr,rx in enumerate(self.__board):
-        curr_a = None
-        curr_b = None
-        afind = False
-        rem_arr = []
-        for r_def in rx:
-          if curr_a == None and r_def != None:
-            afind = True
-            curr_b = r_def
-            rem_arr = []
-          elif curr_a != None and r_def != None and r_def == curr_b and afind == True:
-            afind = False
-            for idx in rem_arr:
-              self.__board[idr][idx] = None
-              self.__pieces_captured[curr_active] += 1
-            rem_arr=[]
-          elif curr_a != None and r_def != None and r_def != curr_b and afind == True:
-            rem_arr.append(rx.index(r_def))
-          elif r_def == None:
-            curr_b = None
-            afind = False            
-            rem_arr = []
-          curr_a = r_def
+      idr = start_x
+      rx = self.__board[idr]
+      curr_a = None
+      curr_b = None
+      afind = False
+      rem_arr = []
+      #l to r
+      active = self.__pieces.index(curr_active)
+      opp = 1 if active == 0 else 0
+      pconsecutive_right = 0
+      pconsecutive_left = 0
+      removable = False
+      if dest_y < 7 :
+        for r_def in range (dest_y+1,9):
+          ele = self.__board[dest_x][r_def]
+          if ele == active and r_def - dest_y == 1:
+            pconsecutive_right = 0
+            break
+          elif ele == opp:
+            pconsecutive_right += 1
+          elif ele == active and r_def - dest_y > 1:
+            removable = True
+            break
+          else:
+            break
+      if dest_y > 2:
+        for r_def in range (dest_y-1,-1,-1):
+          ele = self.__board[dest_x][r_def]
+          if ele == active and dest_y - r_def == 1:
+            pconsecutive_left = 0
+            break
+          elif ele == opp:
+            pconsecutive_left += 1
+          elif ele == active and dest_y - r_def > 1:
+            removable = True
+            break
+          else:
+            break
+      if pconsecutive_left > 0 and removable:
+        for del_ran in range(pconsecutive_left):
+          self.__board[dest_x][dest_y - del_ran - 1] = None
+          self.__pieces_captured[curr_active] += 1
+      if pconsecutive_right > 0 and removable: #changes here
+        for del_ran in range(pconsecutive_right):
+          self.__board[dest_x][dest_y + del_ran + 1] = None
+          self.__pieces_captured[curr_active] += 1
 
-      idr = 0
-      for rx in zip(*self.__board):
-        curr_a, curr_b= None, None
-        afind = False
-        rem_arr = []
-        for r_def in rx:
-          if curr_a == None and r_def != None :
-            curr_b = r_def
-            afind = True
-            rem_arr = []
-          elif curr_a != None and r_def != None and r_def != curr_b and afind == True:
-            rem_arr.append(rx.index(r_def))
-          elif curr_a != None and r_def != None and r_def == curr_b and afind == True:
-            afind = False
-            for idx in rem_arr:
-              self.__board[idx][idr] = None
-              self.__pieces_captured[curr_active] += 1
-            rem_arr=[]
-          elif r_def == None:
-            afind = False            
-            curr_b = None
-            rem_arr = []
-          curr_a = r_def
-        idr += 1
+      opp = 1 if active == 0 else 0
+      pconsecutive_up = 0
+      pconsecutive_below = 0
+      removable = False
+      if dest_x < 7:
+        for r_def in range (dest_x+1,9):
+          ele = self.__board[r_def][dest_y]
+          if ele == active and r_def - dest_x == 1:
+            pconsecutive_up = 0
+            break
+          elif ele == opp:
+            pconsecutive_up += 1
+          elif ele == active and r_def - dest_x > 1:
+            removable = True
+            break
+          else:
+            break
+      if dest_x > 2:
+        for r_def in range (dest_x-1,-1,-1):
+          ele = self.__board[r_def][dest_y]
+          if ele == active and dest_x - r_def == 1:
+            pconsecutive_below = 0
+            break
+          elif ele == opp:
+            pconsecutive_below += 1
+          elif ele == active and dest_x - r_def > 1:
+            removable = True
+            break
+          else:
+            break
+      if pconsecutive_below > 0 and removable:
+        for del_ran in range(pconsecutive_below):
+          self.__board[dest_x - del_ran - 1][dest_y] = None
+          self.__pieces_captured[curr_active] += 1
+      if pconsecutive_up > 0 and removable: #changes here
+        for del_ran in range(pconsecutive_up):
+          self.__board[dest_x + del_ran + 1][dest_y] = None
+          self.__pieces_captured[curr_active] += 1
+
+        
       for cran in range(-1,1):
         for idx, r_def in enumerate(self.__board[cran]):
           if r_def != self.__pieces.index(curr_active) and r_def != None:
             ortho_accept = idx-1, idx+1
-            if all(j>=0 and j<len(self.__board[cran]) for j in ortho_accept) :
-                if (self.__board[cran][idx-1] == self.__pieces.index(curr_active)) or (self.__board[cran][idx+1] == self.__pieces.index(curr_active)):
-                  if cran == -1:
-                    if self.__board[cran-1][idx] == self.__pieces.index(curr_active):
-                        self.__pieces_captured[curr_active] += 1
-                        self.__board[cran][idx] = None
-            elif idx+1>0 and idx+1<len(self.__board[cran]):
-              if self.__board[cran][idx+1] == self.__pieces.index(curr_active):
-                  if cran == -1:
-                    if self.__board[cran-1][idx] == self.__pieces.index(curr_active):
-                        self.__pieces_captured[curr_active] += 1 
-                        self.__board[cran][idx] = None
-            elif idx-1>0 and idx-1<len(self.__board[cran]):
-              if self.__board[cran][idx-1] == self.__pieces.index(curr_active):
-                  if cran == -1:
-                    if self.__board[cran-1][idx] == self.__pieces.index(curr_active):
-                        self.__pieces_captured[curr_active] += 1               
-                        self.__board[cran][idx] = None
+            if [cran,idx] in [[0,0],[0,8],[8,0],[8,8]]:
+              if all(j>=0 and j<len(self.__board[cran]) for j in ortho_accept) :
+                  if (self.__board[cran][idx-1] == self.__pieces.index(curr_active)) or (self.__board[cran][idx+1] == self.__pieces.index(curr_active)):
+                    if cran == -1:
+                      if self.__board[cran-1][idx] == self.__pieces.index(curr_active):
+                          self.__pieces_captured[curr_active] += 1
+                          self.__board[cran][idx] = None
+
+              elif idx+1>0 and idx+1<len(self.__board[cran]):
+                if self.__board[cran][idx+1] == self.__pieces.index(curr_active):
+                    if cran == -1:
+                      if self.__board[cran-1][idx] == self.__pieces.index(curr_active):
+                          self.__pieces_captured[curr_active] += 1 
+                          self.__board[cran][idx] = None
+                          
+              elif idx-1>0 and idx-1<len(self.__board[cran]):
+                if self.__board[cran][idx-1] == self.__pieces.index(curr_active):
+                    if cran == -1:
+                      if self.__board[cran-1][idx] == self.__pieces.index(curr_active):
+                          self.__pieces_captured[curr_active] += 1               
+                          self.__board[cran][idx] = None
 
       if self.__pieces_captured["RED"] > 7:
         self.__game_state= "RED_WON"
@@ -238,3 +295,4 @@ class HasamiShogiGame:
           print(to_print, end="\n")
         else:
           print(to_print, end=" ")
+
